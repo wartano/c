@@ -13,6 +13,7 @@ void *traffic_monitor(void *);
 unsigned short handle_ethernet(const u_char *);
 struct sockaddr_in * (*handle_IP(const struct pcap_pkthdr *, const u_char *))[2];
 void my_callback(u_char *, const struct pcap_pkthdr *, const u_char *);
+void free_sockaddr_pair(struct sockaddr_in *(*)[2]);
 
 typedef struct str_thdata
 {
