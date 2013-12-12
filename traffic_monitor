@@ -20,6 +20,13 @@ typedef struct str_thdata
     char filter_exp[65535];
 } thdata;
 
+void free_sockaddr_pair(struct sockaddr_in *(*sockaddr_pair)[2])
+{
+    free((*sockaddr_pair)[0]);
+    free((*sockaddr_pair)[1]);
+    free(sockaddr_pair);
+}
+
 unsigned short handle_ethernet(const u_char *packet)
 {
         /* lets start with the ether header... */
@@ -44,6 +51,7 @@ struct sockaddr_in * (*handle_IP(const struct pcap_pkthdr *pkthdr, const u_char 
         if (version != 4)
         {
                 fprintf(stdout,"Unknown version %d\n", version);
+                free_sockaddr_pair(sockaddr_pair);
                 return NULL;
         }
         iphdrlen = (unsigned int)(iph->ihl) * 4;
@@ -51,6 +59,7 @@ struct sockaddr_in * (*handle_IP(const struct pcap_pkthdr *pkthdr, const u_char 
         if (iphdrlen < 20)
         {
                 fprintf(stdout,"bad iphdrlen %d \n", iphdrlen);
+                free_sockaddr_pair(sockaddr_pair);
                 return NULL;
         }
         length = ntohs(iph->tot_len);
@@ -58,6 +67,7 @@ struct sockaddr_in * (*handle_IP(const struct pcap_pkthdr *pkthdr, const u_char 
         if (length < sizeof(struct iphdr))
         {
                 printf("truncated ip %d", length);
+                free_sockaddr_pair(sockaddr_pair);
                 return NULL;
         }
         proto = (unsigned int)iph->protocol;
@@ -97,13 +107,12 @@ void my_callback(u_char *useless, const struct pcap_pkthdr *pkthdr, const u_char
                 {
                         ip_source = *(*sockaddr_pair)[0];
                         ip_dest = *(*sockaddr_pair)[1];
-                        free((*sockaddr_pair)[0]);
-                        free((*sockaddr_pair)[1]);
-                        free(sockaddr_pair);
+                        free_sockaddr_pair(sockaddr_pair);
                         
                         printf("Source ip is %s\n", inet_ntoa(ip_source.sin_addr));
                         printf("Destination ip is %s\n", inet_ntoa(ip_dest.sin_addr));
                 }
+                
         }
 }
 
