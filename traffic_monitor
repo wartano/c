@@ -85,7 +85,7 @@ struct sockaddr_in * (*handle_IP(const struct pcap_pkthdr *pkthdr, const u_char 
 void my_callback(u_char *useless, const struct pcap_pkthdr *pkthdr, const u_char *packet)
 {
         int size = pkthdr->len;
-        struct sockaddr_in *ip_source, *ip_dest;
+        struct sockaddr_in ip_source, ip_dest;
 
         unsigned short type = handle_ethernet(packet);
 
@@ -95,11 +95,14 @@ void my_callback(u_char *useless, const struct pcap_pkthdr *pkthdr, const u_char
                 struct sockaddr_in *(*sockaddr_pair)[2] = handle_IP(pkthdr, packet);
                 if (sockaddr_pair != NULL)
                 {
-                        ip_source = (*sockaddr_pair)[0];
-                        ip_dest = (*sockaddr_pair)[1];
-
-                        printf("Source ip is %s\n", inet_ntoa(ip_source->sin_addr));
-                        printf("Destination ip is %s\n", inet_ntoa(ip_dest->sin_addr));
+                        ip_source = *(*sockaddr_pair)[0];
+                        ip_dest = *(*sockaddr_pair)[1];
+                        free((*sockaddr_pair)[0]);
+                        free((*sockaddr_pair)[1]);
+                        free(sockaddr_pair);
+                        
+                        printf("Source ip is %s\n", inet_ntoa(ip_source.sin_addr));
+                        printf("Destination ip is %s\n", inet_ntoa(ip_dest.sin_addr));
                 }
         }
 }
@@ -176,7 +179,6 @@ void *traffic_monitor(void *data)
 int main(int argc, char *argv[])
 {
         int rc;
-        char *b;
         pthread_t thread;
         thdata data;
         strcpy(data.dev, "eth1");
