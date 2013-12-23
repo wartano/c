@@ -14,12 +14,20 @@ unsigned short handle_ethernet(const u_char *);
 struct sockaddr_in * (*handle_IP(const struct pcap_pkthdr *, const u_char *))[2];
 void my_callback(u_char *, const struct pcap_pkthdr *, const u_char *);
 void free_sockaddr_pair(struct sockaddr_in *(*)[2]);
+void cleanupHandler(void *);
 
 typedef struct str_thdata
 {
     char dev[100];
     char filter_exp[65535];
 } thdata;
+
+void cleanupHandler(void *cleanupData)
+{
+    pcap_t *handle = (pcap_t *)cleanupData;
+    if (handle != NULL)
+        pcap_close(handle);
+}
 
 void free_sockaddr_pair(struct sockaddr_in *(*sockaddr_pair)[2])
 {
@@ -124,8 +132,10 @@ void *traffic_monitor(void *data)
         //if (rc)
         //        pthread_exit(NULL);
 
+        
+        
         thdata *tdata = (thdata *)data;
-        pcap_t *handle;                 /* Session handle */
+        pcap_t *handle = NULL;                 /* Session handle */
         char *dev = tdata->dev;         /* The device to sniff on */
         char errbuf[PCAP_ERRBUF_SIZE];  /* Error string */
         struct bpf_program fp;          /* The compiled filter */
@@ -138,6 +148,8 @@ void *traffic_monitor(void *data)
         const u_char *packet;           /* The actual packet */
         struct in_addr addr;
 
+        pthread_cleanup_push(cleanupHandler, handle);
+        
         /* print out device name */
         printf("DEV: %s\n",dev);
 
@@ -169,18 +181,15 @@ void *traffic_monitor(void *data)
         handle = pcap_open_live(dev, BUFSIZ, 0, 0, errbuf);
         if (handle == NULL) {
                 fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
-                pcap_close(handle);
                 pthread_exit(NULL);
         }
         /* Compile and apply the filter */
         if (pcap_compile(handle, &fp, filter_exp, 0, netp) == -1) {
                 fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
-                pcap_close(handle);
                 pthread_exit(NULL);
         }
         if (pcap_setfilter(handle, &fp) == -1) {
                 fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(handle));
-                pcap_close(handle);
                 pthread_exit(NULL);
         }
         pcap_loop(handle, -1, my_callback, NULL);
