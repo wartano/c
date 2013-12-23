@@ -169,15 +169,18 @@ void *traffic_monitor(void *data)
         handle = pcap_open_live(dev, BUFSIZ, 0, 0, errbuf);
         if (handle == NULL) {
                 fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
+                pcap_close(handle);
                 pthread_exit(NULL);
         }
         /* Compile and apply the filter */
         if (pcap_compile(handle, &fp, filter_exp, 0, netp) == -1) {
                 fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
+                pcap_close(handle);
                 pthread_exit(NULL);
         }
         if (pcap_setfilter(handle, &fp) == -1) {
                 fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(handle));
+                pcap_close(handle);
                 pthread_exit(NULL);
         }
         pcap_loop(handle, -1, my_callback, NULL);
