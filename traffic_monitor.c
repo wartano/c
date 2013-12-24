@@ -15,6 +15,7 @@ struct sockaddr_in * (*handle_IP(const struct pcap_pkthdr *, const u_char *))[2]
 void my_callback(u_char *, const struct pcap_pkthdr *, const u_char *);
 void free_sockaddr_pair(struct sockaddr_in *(*)[2]);
 void cleanupHandler(void *);
+void *alloc_mem(size_t);
 
 typedef struct str_thdata
 {
@@ -29,11 +30,23 @@ void cleanupHandler(void *cleanupData)
         pcap_close(handle);
 }
 
+void *alloc_mem(size_t size)
+{
+    void *p = malloc(size);
+    if (p == NULL) 
+        exit(1);
+    
+    return p;
+}
+
 void free_sockaddr_pair(struct sockaddr_in *(*sockaddr_pair)[2])
 {
-    free((*sockaddr_pair)[0]);
-    free((*sockaddr_pair)[1]);
-    free(sockaddr_pair);
+    if ((*sockaddr_pair)[0] != NULL)
+        free((*sockaddr_pair)[0]);
+    if ((*sockaddr_pair)[1] != NULL)
+        free((*sockaddr_pair)[1]);
+    if (sockaddr_pair != NULL)
+        free(sockaddr_pair);
 }
 
 unsigned short handle_ethernet(const u_char *packet)
@@ -49,9 +62,9 @@ unsigned short handle_ethernet(const u_char *packet)
 
 struct sockaddr_in * (*handle_IP(const struct pcap_pkthdr *pkthdr, const u_char *packet))[2]
 {
-        struct sockaddr_in *source = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
-        struct sockaddr_in *dest = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
-        struct sockaddr_in *(*sockaddr_pair)[2] = (struct sockaddr_in *(*)[2])malloc(sizeof(int));
+        struct sockaddr_in *source = (struct sockaddr_in *)alloc_mem(sizeof(struct sockaddr_in));
+        struct sockaddr_in *dest = (struct sockaddr_in *)alloc_mem(sizeof(struct sockaddr_in));
+        struct sockaddr_in *(*sockaddr_pair)[2] = (struct sockaddr_in *(*)[2])alloc_mem(sizeof(int));
         unsigned int version, iphdrlen, length, proto;
 
         struct iphdr *iph = (struct iphdr *)(packet + sizeof(struct ethhdr));
